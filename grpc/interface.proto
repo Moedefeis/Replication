@@ -1,0 +1,3 @@
+syntax = "proto3";
+package grpc;
+option go_package = "https://github.com/Moedefeis/Replication;grpc";
