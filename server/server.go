@@ -42,8 +42,7 @@ func main() {
 	ownPort, _ = strconv.Atoi(os.Args[1])
 	delete(conns, ownPort)
 	election()
-	nigger := "nigger"
-	log.Println(nigger)
+
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", ownPort))
 	if err != nil {
 		log.Fatalf("Failed to listen on port %d: %v", ownPort, err)
