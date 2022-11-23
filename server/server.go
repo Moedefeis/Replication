@@ -70,6 +70,7 @@ func (a *Auction) Bid(ctx context.Context, bid *proto.Amount) (*proto.Response, 
 		op: op,
 	})
 	node.lock.Unlock()
+	log.Printf("Received bid operation, waiting for leader's notice")
 	if isLeader() {
 		go node.executeOperations()
 	}
@@ -92,19 +93,18 @@ func (a *Auction) Result(ctx context.Context, void *proto.Void) (*proto.Amount, 
 
 func (a *Auction) Crashed(ctx context.Context, id *proto.ServerId) (*proto.Void, error) {
 	port := int(id.Port)
-	if _, hasPort := conns[port]; hasPort {
-		delete(conns, port)
-		if port == leaderPort {
-			election()
-			if isLeader() {
-				node.executeOperations()
-			}
+	delete(conns, port)
+	if port == leaderPort {
+		election()
+		if isLeader() {
+			node.executeOperations()
 		}
 	}
 	return &proto.Void{}, nil
 }
 
 func (n *ServerNode) ExecuteOperation(ctx context.Context, opid *proto.OperationId) (*proto.Void, error) {
+	log.Printf("Received notice to execute operation: %v", opid.Id)
 	var removed Operation
 	n.operations, removed = remove(n.operations, opid.Id)
 	removed.op <- true
@@ -113,7 +113,7 @@ func (n *ServerNode) ExecuteOperation(ctx context.Context, opid *proto.Operation
 
 func (n *ServerNode) executeOperations() {
 	n.lock.Lock()
-	log.Printf("Executing operations")
+	log.Printf("Broadcasting operations to execute")
 	for len(n.operations) > 0 {
 		op := n.operations[0]
 		opId := &proto.OperationId{Id: op.id}
@@ -123,7 +123,7 @@ func (n *ServerNode) executeOperations() {
 		n.ExecuteOperation(ctx, opId)
 	}
 	n.lock.Unlock()
-	log.Printf("Executing operations - done")
+	log.Printf("Broadcasting operations to execute - done")
 }
 
 func isLeader() bool {
@@ -131,12 +131,12 @@ func isLeader() bool {
 }
 
 func election() {
+	log.Printf("Electing leader")
 	leaderPort = ownPort
 	for port := range conns {
 		if port > leaderPort {
 			leaderPort = port
 		}
-		log.Printf("Port: %d", port)
 	}
 
 	if isLeader() {

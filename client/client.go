@@ -30,7 +30,6 @@ func main() {
 		defer conn.Close()
 		conns[port] = proto.NewAuctionClient(conn)
 	}
-
 	handleInput()
 }
 
@@ -75,10 +74,10 @@ func bidHandler(port int, conn proto.AuctionClient, bid *proto.Amount, wg *sync.
 
 	response, err := conn.Bid(ctx, bid)
 	if err != nil {
-		log.Printf(err.Error())
 		handleCrashedServer(port)
+	} else {
+		bidResponse = response
 	}
-	bidResponse = response
 }
 
 func queryResult() {
