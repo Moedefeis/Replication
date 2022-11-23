@@ -1,3 +1,21 @@
 syntax = "proto3";
 package grpc;
 option go_package = "https://github.com/Moedefeis/Replication;grpc";
+
+service auction{
+    rpc bid (Amount) returns (Response) { }
+    rpc result(Void) returns (Amount) { }
+}
+
+message Amount{
+    int32 amount = 1;
+}
+
+message Response{
+    bool status = 1;
+    string message = 2;
+}
+
+message Void{
+
+}
