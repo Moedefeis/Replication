@@ -5,15 +5,29 @@ option go_package = "https://github.com/Moedefeis/Replication;grpc";
 service auction{
     rpc bid (Amount) returns (Response) { }
     rpc result(Void) returns (Amount) { }
+    rpc crashed(ServerId) returns (Void) { }
+}
+
+service serverNode{
+    rpc executeOperation(OperationId) returns (Void) { }
+}
+
+message OperationId{
+    string id = 1;
 }
 
 message Amount{
     int32 amount = 1;
+    OperationId op = 2;
 }
 
 message Response{
     bool status = 1;
     string message = 2;
+}
+
+message ServerId{
+    int32 port = 1;
 }
 
 message Void{

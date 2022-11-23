@@ -9,41 +9,73 @@ import (
 	"strconv"
 	"sync"
 
-	auction "github.com/Moedefeis/Replication/grpc"
+	proto "github.com/Moedefeis/Replication/grpc"
 	"google.golang.org/grpc"
 )
 
 type Auction struct {
-	auction.UnimplementedAuctionServer
+	proto.UnimplementedAuctionServer
 
 	highestBid int32
 	bidLock    sync.Mutex
 }
 
-func main() {
-	port, _ := strconv.Atoi(os.Args[1])
+type ServerNode struct {
+	proto.UnimplementedServerNodeServer
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", port))
+	lock       sync.Mutex
+	operations []Operation
+}
+
+type Operation struct {
+	id string
+	op chan bool
+}
+
+var ctx context.Context = context.Background()
+var node *ServerNode
+var ownPort int
+var leaderPort int
+var conns = map[int]proto.ServerNodeClient{5000: nil, 5001: nil, 5002: nil}
+
+func main() {
+	ownPort, _ = strconv.Atoi(os.Args[1])
+	delete(conns, ownPort)
+	election()
+	nigger := "nigger"
+	log.Println(nigger)
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", ownPort))
 	if err != nil {
-		log.Fatalf("Failed to listen on port 9080: %v", err)
+		log.Fatalf("Failed to listen on port %d: %v", ownPort, err)
 	}
 
 	defer listener.Close()
-	a := &Auction{
-		highestBid: 0,
-	}
+	node = &ServerNode{operations: make([]Operation, 0)}
+	a := &Auction{highestBid: 0}
 
 	server := grpc.NewServer()
-	auction.RegisterAuctionServer(server, a)
+	proto.RegisterAuctionServer(server, a)
+	proto.RegisterServerNodeServer(server, node)
 
 	if err := server.Serve(listener); err != nil {
 		log.Fatalf("failed to server %v", err)
 	}
 }
 
-func (a *Auction) Bid(ctx context.Context, bid *auction.Amount) (*auction.Response, error) {
-	var status bool
+func (a *Auction) Bid(ctx context.Context, bid *proto.Amount) (*proto.Response, error) {
+	op := make(chan bool)
+	node.lock.Lock()
+	node.operations = append(node.operations, Operation{
+		id: bid.Op.Id,
+		op: op,
+	})
+	node.lock.Unlock()
+	if isLeader() {
+		go node.executeOperations()
+	}
+	<-op
 	a.bidLock.Lock()
+	var status bool
 	if a.highestBid < bid.Amount {
 		a.highestBid = bid.Amount
 		status = true
@@ -51,9 +83,81 @@ func (a *Auction) Bid(ctx context.Context, bid *auction.Amount) (*auction.Respon
 		status = false
 	}
 	a.bidLock.Unlock()
-	return &auction.Response{Status: status}, nil
+	return &proto.Response{Status: status}, nil
 }
 
-func (a *Auction) Result(ctx context.Context, void *auction.Void) (*auction.Amount, error) {
-	return &auction.Amount{Amount: a.highestBid}, nil
+func (a *Auction) Result(ctx context.Context, void *proto.Void) (*proto.Amount, error) {
+	return &proto.Amount{Amount: a.highestBid}, nil
+}
+
+func (a *Auction) Crashed(ctx context.Context, id *proto.ServerId) (*proto.Void, error) {
+	port := int(id.Port)
+	if _, hasPort := conns[port]; hasPort {
+		delete(conns, port)
+		if port == leaderPort {
+			election()
+			if isLeader() {
+				node.executeOperations()
+			}
+		}
+	}
+	return &proto.Void{}, nil
+}
+
+func (n *ServerNode) ExecuteOperation(ctx context.Context, opid *proto.OperationId) (*proto.Void, error) {
+	var removed Operation
+	n.operations, removed = remove(n.operations, opid.Id)
+	removed.op <- true
+	return &proto.Void{}, nil
+}
+
+func (n *ServerNode) executeOperations() {
+	n.lock.Lock()
+	log.Printf("Executing operations")
+	for len(n.operations) > 0 {
+		op := n.operations[0]
+		opId := &proto.OperationId{Id: op.id}
+		for _, conn := range conns {
+			conn.ExecuteOperation(ctx, opId)
+		}
+		n.ExecuteOperation(ctx, opId)
+	}
+	n.lock.Unlock()
+	log.Printf("Executing operations - done")
+}
+
+func isLeader() bool {
+	return ownPort == leaderPort
+}
+
+func election() {
+	leaderPort = ownPort
+	for port := range conns {
+		if port > leaderPort {
+			leaderPort = port
+		}
+		log.Printf("Port: %d", port)
+	}
+
+	if isLeader() {
+		for port := range conns {
+			conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock())
+			if err != nil {
+				log.Fatalf("Could not connect: %v", err)
+			}
+			conns[port] = proto.NewServerNodeClient(conn)
+		}
+	}
+}
+
+func remove(slice []Operation, id string) ([]Operation, Operation) {
+	var i int
+	var op Operation
+	for i, op = range slice {
+		if op.id == id {
+			break
+		}
+	}
+	slice[i] = slice[len(slice)-1]
+	return slice[:len(slice)-1], op
 }
