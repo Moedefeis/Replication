@@ -9,7 +9,7 @@ service auction{
 }
 
 service serverNode{
-    rpc executeOperation(OperationId) returns (Void) { }
+    rpc addOperationToExecutionOrder(OperationId) returns (Void) { }
 }
 
 message OperationId{
@@ -18,7 +18,7 @@ message OperationId{
 
 message Amount{
     int32 amount = 1;
-    OperationId op = 2;
+    OperationId opid = 2;
 }
 
 message Response{

@@ -17,7 +17,6 @@ import (
 var conns = make(map[int]proto.AuctionClient)
 var reader *bufio.Scanner
 var ctx = context.Background()
-var bidResponse *proto.Response
 
 func main() {
 	reader = bufio.NewScanner(os.Stdin)
@@ -30,7 +29,15 @@ func main() {
 		defer conn.Close()
 		conns[port] = proto.NewAuctionClient(conn)
 	}
+	//stressTest()
 	handleInput()
+}
+
+func stressTest() {
+	for i := 0; i <= 200; i++ {
+		go bid(i)
+	}
+	<-make(chan bool)
 }
 
 func handleInput() {
@@ -54,29 +61,31 @@ func handleInput() {
 func bid(amount int) {
 	bid := &proto.Amount{
 		Amount: int32(amount),
-		Op:     &proto.OperationId{Id: fmt.Sprintf("Bid %d", amount)},
+		Opid:   &proto.OperationId{Id: fmt.Sprintf("Bid %d", amount)},
 	}
 	var wg sync.WaitGroup
+	wrapper := &response{}
 	for port, conn := range conns {
 		wg.Add(1)
-		go bidHandler(port, conn, bid, &wg)
+		go bidHandler(port, conn, bid, &wg, wrapper)
 	}
 	wg.Wait()
-	if bidResponse.Status {
+	if wrapper.reponse.Status {
 		log.Printf("Bidded %d successfully", amount)
 	} else {
 		log.Printf("Bidded %d unsuccessfully, as higher bid existed", amount)
 	}
 }
 
-func bidHandler(port int, conn proto.AuctionClient, bid *proto.Amount, wg *sync.WaitGroup) {
+func bidHandler(port int, conn proto.AuctionClient, bid *proto.Amount, wg *sync.WaitGroup, wrapper *response) {
 	defer wg.Done()
 
 	response, err := conn.Bid(ctx, bid)
 	if err != nil {
+		log.Printf(err.Error())
 		handleCrashedServer(port)
 	} else {
-		bidResponse = response
+		wrapper.reponse = response
 	}
 }
 
@@ -100,4 +109,8 @@ func handleCrashedServer(port int) {
 	for _, conn := range conns {
 		go conn.Crashed(ctx, serverid)
 	}
+}
+
+type response struct {
+	reponse *proto.Response
 }

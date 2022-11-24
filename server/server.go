@@ -23,15 +23,20 @@ type Auction struct {
 type ServerNode struct {
 	proto.UnimplementedServerNodeServer
 
-	lock       sync.Mutex
-	operations []Operation
+	election          sync.Mutex
+	operations        sync.Mutex
+	pendingOperations []*Operation
+	executionOrder    []*proto.OperationId
 }
 
 type Operation struct {
-	id string
-	op chan bool
+	id      *proto.OperationId
+	execute chan bool
+	done    chan bool
 }
 
+var broadcast sync.Mutex
+var broadcasted = make(map[*Operation]bool)
 var ctx context.Context = context.Background()
 var node *ServerNode
 var ownPort int
@@ -49,7 +54,7 @@ func main() {
 	}
 
 	defer listener.Close()
-	node = &ServerNode{operations: make([]Operation, 0)}
+	node = &ServerNode{pendingOperations: make([]*Operation, 0)}
 	a := &Auction{highestBid: 0}
 
 	server := grpc.NewServer()
@@ -62,19 +67,21 @@ func main() {
 }
 
 func (a *Auction) Bid(ctx context.Context, bid *proto.Amount) (*proto.Response, error) {
-	op := make(chan bool)
-	node.lock.Lock()
-	node.operations = append(node.operations, Operation{
-		id: bid.Op.Id,
-		op: op,
-	})
-	node.lock.Unlock()
-	log.Printf("Received bid operation, waiting for leader's notice")
-	if isLeader() {
-		go node.executeOperations()
+	op := &Operation{
+		id:      bid.Opid,
+		execute: make(chan bool),
+		done:    make(chan bool),
 	}
-	<-op
-	a.bidLock.Lock()
+	node.operations.Lock()
+	log.Printf("Received operation: %v", bid.Opid.Id)
+	node.pendingOperations = append(node.pendingOperations, op)
+	node.operations.Unlock()
+	if isLeader() {
+		go node.broadcastOperationExecution(op)
+	} else {
+		go node.executePendingOperations()
+	}
+	<-op.execute
 	var status bool
 	if a.highestBid < bid.Amount {
 		a.highestBid = bid.Amount
@@ -82,7 +89,7 @@ func (a *Auction) Bid(ctx context.Context, bid *proto.Amount) (*proto.Response, 
 	} else {
 		status = false
 	}
-	a.bidLock.Unlock()
+	op.done <- true
 	return &proto.Response{Status: status}, nil
 }
 
@@ -93,36 +100,68 @@ func (a *Auction) Result(ctx context.Context, void *proto.Void) (*proto.Amount, 
 func (a *Auction) Crashed(ctx context.Context, id *proto.ServerId) (*proto.Void, error) {
 	port := int(id.Port)
 	delete(conns, port)
+	node.election.Lock()
 	if port == leaderPort {
 		election()
 		if isLeader() {
-			node.executeOperations()
+			node.broadcastExecutionOfAllPendingOperations()
 		}
 	}
+	node.election.Unlock()
 	return &proto.Void{}, nil
 }
 
-func (n *ServerNode) ExecuteOperation(ctx context.Context, opid *proto.OperationId) (*proto.Void, error) {
-	log.Printf("Received notice to execute operation: %v", opid.Id)
-	var removed Operation
-	n.operations, removed = remove(n.operations, opid.Id)
-	removed.op <- true
+func (n *ServerNode) AddOperationToExecutionOrder(ctx context.Context, opid *proto.OperationId) (*proto.Void, error) {
+	n.operations.Lock()
+	log.Printf("Notice to execute operation: %v", opid.Id)
+	n.executionOrder = append(n.executionOrder, opid)
+	n.operations.Unlock()
+	go n.executePendingOperations()
 	return &proto.Void{}, nil
 }
 
-func (n *ServerNode) executeOperations() {
-	n.lock.Lock()
-	log.Printf("Broadcasting operations to execute")
-	for len(n.operations) > 0 {
-		op := n.operations[0]
-		opId := &proto.OperationId{Id: op.id}
+func (n *ServerNode) broadcastExecutionOfAllPendingOperations() {
+	log.Printf("Broadcasting order of all pending operations")
+	operations := n.pendingOperations
+	for _, op := range operations {
+		n.broadcastOperationExecution(op)
+	}
+}
+
+func (n *ServerNode) broadcastOperationExecution(op *Operation) {
+	broadcast.Lock()
+	if _, contains := broadcasted[op]; !contains {
+		log.Printf("Broadcasting operation: %v", op.id.Id)
+		broadcasted[op] = true
 		for _, conn := range conns {
-			conn.ExecuteOperation(ctx, opId)
+			conn.AddOperationToExecutionOrder(ctx, op.id)
 		}
-		n.ExecuteOperation(ctx, opId)
+		n.AddOperationToExecutionOrder(ctx, op.id)
 	}
-	n.lock.Unlock()
-	log.Printf("Broadcasting operations to execute - done")
+	broadcast.Unlock()
+}
+
+func (n *ServerNode) executePendingOperations() {
+	n.operations.Lock()
+	hasNextOperation := true
+	for len(n.executionOrder) > 0 && hasNextOperation {
+		opid := n.executionOrder[0]
+		hasNextOperation = false
+		for i, op := range n.pendingOperations {
+			if equal(opid, op.id) {
+				hasNextOperation = true
+				n.executionOrder = n.executionOrder[1:]
+				n.pendingOperations = remove(n.pendingOperations, i)
+				if isLeader() {
+					delete(broadcasted, op)
+				}
+				op.execute <- true
+				<-op.done
+				break
+			}
+		}
+	}
+	n.operations.Unlock()
 }
 
 func isLeader() bool {
@@ -133,7 +172,7 @@ func election() {
 	log.Printf("Electing leader")
 	leaderPort = ownPort
 	for port := range conns {
-		if port > leaderPort {
+		if port < leaderPort {
 			leaderPort = port
 		}
 	}
@@ -149,14 +188,11 @@ func election() {
 	}
 }
 
-func remove(slice []Operation, id string) ([]Operation, Operation) {
-	var i int
-	var op Operation
-	for i, op = range slice {
-		if op.id == id {
-			break
-		}
-	}
+func remove(slice []*Operation, i int) []*Operation {
 	slice[i] = slice[len(slice)-1]
-	return slice[:len(slice)-1], op
+	return slice[:len(slice)-1]
+}
+
+func equal(op1 *proto.OperationId, op2 *proto.OperationId) bool {
+	return op1.Id == op2.Id
 }

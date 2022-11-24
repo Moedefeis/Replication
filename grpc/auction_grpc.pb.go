@@ -180,7 +180,7 @@ var Auction_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ServerNodeClient interface {
-	ExecuteOperation(ctx context.Context, in *OperationId, opts ...grpc.CallOption) (*Void, error)
+	AddOperationToExecutionOrder(ctx context.Context, in *OperationId, opts ...grpc.CallOption) (*Void, error)
 }
 
 type serverNodeClient struct {
@@ -191,9 +191,9 @@ func NewServerNodeClient(cc grpc.ClientConnInterface) ServerNodeClient {
 	return &serverNodeClient{cc}
 }
 
-func (c *serverNodeClient) ExecuteOperation(ctx context.Context, in *OperationId, opts ...grpc.CallOption) (*Void, error) {
+func (c *serverNodeClient) AddOperationToExecutionOrder(ctx context.Context, in *OperationId, opts ...grpc.CallOption) (*Void, error) {
 	out := new(Void)
-	err := c.cc.Invoke(ctx, "/grpc.serverNode/executeOperation", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/grpc.serverNode/addOperationToExecutionOrder", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (c *serverNodeClient) ExecuteOperation(ctx context.Context, in *OperationId
 // All implementations must embed UnimplementedServerNodeServer
 // for forward compatibility
 type ServerNodeServer interface {
-	ExecuteOperation(context.Context, *OperationId) (*Void, error)
+	AddOperationToExecutionOrder(context.Context, *OperationId) (*Void, error)
 	mustEmbedUnimplementedServerNodeServer()
 }
 
@@ -212,8 +212,8 @@ type ServerNodeServer interface {
 type UnimplementedServerNodeServer struct {
 }
 
-func (UnimplementedServerNodeServer) ExecuteOperation(context.Context, *OperationId) (*Void, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ExecuteOperation not implemented")
+func (UnimplementedServerNodeServer) AddOperationToExecutionOrder(context.Context, *OperationId) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddOperationToExecutionOrder not implemented")
 }
 func (UnimplementedServerNodeServer) mustEmbedUnimplementedServerNodeServer() {}
 
@@ -228,20 +228,20 @@ func RegisterServerNodeServer(s grpc.ServiceRegistrar, srv ServerNodeServer) {
 	s.RegisterService(&ServerNode_ServiceDesc, srv)
 }
 
-func _ServerNode_ExecuteOperation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ServerNode_AddOperationToExecutionOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(OperationId)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServerNodeServer).ExecuteOperation(ctx, in)
+		return srv.(ServerNodeServer).AddOperationToExecutionOrder(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/grpc.serverNode/executeOperation",
+		FullMethod: "/grpc.serverNode/addOperationToExecutionOrder",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerNodeServer).ExecuteOperation(ctx, req.(*OperationId))
+		return srv.(ServerNodeServer).AddOperationToExecutionOrder(ctx, req.(*OperationId))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -254,8 +254,8 @@ var ServerNode_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ServerNodeServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "executeOperation",
-			Handler:    _ServerNode_ExecuteOperation_Handler,
+			MethodName: "addOperationToExecutionOrder",
+			Handler:    _ServerNode_AddOperationToExecutionOrder_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
