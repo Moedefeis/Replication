@@ -103,11 +103,13 @@ func queryResult() {
 }
 
 func handleCrashedServer(port int) {
-	log.Printf("Server at port: %d crashed", port)
-	delete(conns, port)
-	serverid := &proto.ServerId{Port: int32(port)}
-	for _, conn := range conns {
-		go conn.Crashed(ctx, serverid)
+	if _, contains := conns[port]; contains {
+		log.Printf("Server at port: %d crashed", port)
+		delete(conns, port)
+		serverid := &proto.ServerId{Port: int32(port)}
+		for _, conn := range conns {
+			go conn.Crashed(ctx, serverid)
+		}
 	}
 }
 
