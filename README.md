@@ -7,4 +7,4 @@ To run the program, first navigate to this directory, and start two servers by e
 Next run as many clients as you wish by executing the following command: 
     "go run client/client.go"
 
-The first connected client will start the auction, and you can now use the command "bid *amount*" to bid to the auction, or the command "result" to see the currently highest bid. The auction ends one minute after the first client has joined, and you will now only be able to see the result of the auction.
+You can now use the command "bid *amount*" to bid to the auction, or the command "result" to see the currently highest bid. The auction ends one minute after the first client has joined.
