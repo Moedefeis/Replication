@@ -1,0 +1,100 @@
+--- Server 1 (port 5000) ---
+
+2022/11/28 14:38:35 Electing leader
+2022/11/28 14:38:59 Received operation: Bid 5
+2022/11/28 14:38:59 Broadcasting operation: Bid 5     
+2022/11/28 14:38:59 Notice to execute operation: Bid 5
+2022/11/28 14:39:02 Received operation: Bid 3
+2022/11/28 14:39:02 Broadcasting operation: Bid 3     
+2022/11/28 14:39:02 Notice to execute operation: Bid 3
+2022/11/28 14:39:09 Received operation: Bid 10        
+2022/11/28 14:39:09 Broadcasting operation: Bid 10    
+2022/11/28 14:39:09 Notice to execute operation: Bid 10
+2022/11/28 14:39:14 Received operation: Bid 7
+2022/11/28 14:39:14 Broadcasting operation: Bid 7     
+2022/11/28 14:39:14 Notice to execute operation: Bid 7
+2022/11/28 14:39:20 Received operation: Bid 15        
+2022/11/28 14:39:20 Broadcasting operation: Bid 15    
+2022/11/28 14:39:20 Notice to execute operation: Bid 15
+2022/11/28 14:39:26 Received operation: Bid 13        
+2022/11/28 14:39:26 Broadcasting operation: Bid 13    
+2022/11/28 14:39:26 Notice to execute operation: Bid 13
+2022/11/28 14:39:30 Received operation: Bid 20        
+2022/11/28 14:39:30 Broadcasting operation: Bid 20    
+2022/11/28 14:39:30 Notice to execute operation: Bid 20
+exit status 0xc000013a
+
+
+
+--- Server 2 (port 5001) ---
+
+2022/11/28 14:38:47 Electing leader
+2022/11/28 14:38:59 Received operation: Bid 5
+2022/11/28 14:38:59 Notice to execute operation: Bid 5
+2022/11/28 14:39:02 Received operation: Bid 3
+2022/11/28 14:39:02 Notice to execute operation: Bid 3
+2022/11/28 14:39:09 Received operation: Bid 10        
+2022/11/28 14:39:09 Notice to execute operation: Bid 10
+2022/11/28 14:39:14 Received operation: Bid 7
+2022/11/28 14:39:14 Notice to execute operation: Bid 7
+2022/11/28 14:39:20 Received operation: Bid 15        
+2022/11/28 14:39:20 Notice to execute operation: Bid 15
+2022/11/28 14:39:26 Received operation: Bid 13        
+2022/11/28 14:39:26 Notice to execute operation: Bid 13
+2022/11/28 14:39:30 Received operation: Bid 20        
+2022/11/28 14:39:30 Notice to execute operation: Bid 20
+2022/11/28 14:39:51 Received operation: Bid 20        
+2022/11/28 14:39:53 Electing leader
+2022/11/28 14:39:53 Broadcasting order of all pending operations
+2022/11/28 14:39:53 Broadcasting operation: Bid 20    
+2022/11/28 14:39:53 Notice to execute operation: Bid 20
+2022/11/28 14:39:53 Broadcasting operation: end auction
+2022/11/28 14:39:53 Notice to execute operation: end auction
+2022/11/28 14:39:55 Broadcasting operation: end auction
+2022/11/28 14:39:55 Notice to execute operation: end auction
+2022/11/28 14:40:08 Received operation: Bid 25        
+2022/11/28 14:40:08 Broadcasting operation: Bid 25    
+2022/11/28 14:40:08 Notice to execute operation: Bid 25
+2022/11/28 14:40:15 Received operation: Bid 27        
+2022/11/28 14:40:15 Broadcasting operation: Bid 27    
+2022/11/28 14:40:15 Notice to execute operation: Bid 27
+
+
+
+--- Client 1 ---
+
+bid 5
+2022/11/28 14:38:59 Bidded 5 successfully
+bid 7
+2022/11/28 14:39:14 Bidded 7 unsuccessfully, higher bid exists
+result
+2022/11/28 14:39:17 Highest bid is: 10
+bid 15
+2022/11/28 14:39:20 Bidded 15 successfully
+bid 20
+2022/11/28 14:39:53 Server at port: 5000 crashed      
+2022/11/28 14:39:53 Bidded 20 unsuccessfully, higher bid exists
+bid 27
+2022/11/28 14:40:15 Bidded 27 unsuccessfully, auction 
+has ended
+
+
+
+--- Client 2 ---
+
+bid 3
+2022/11/28 14:39:02 Bidded 3 unsuccessfully, higher bid exists
+bid 10
+2022/11/28 14:39:09 Bidded 10 successfully
+bid 13
+2022/11/28 14:39:26 Bidded 13 unsuccessfully, higher 
+bid exists
+result
+2022/11/28 14:39:28 Highest bid is: 15
+bid 20
+2022/11/28 14:39:30 Bidded 20 successfully
+result
+2022/11/28 14:39:59 Server at port: 5000 crashed     
+2022/11/28 14:39:59 Highest bid is: 20
+bid 25
+2022/11/28 14:40:08 Bidded 25 unsuccessfully, auction has ended

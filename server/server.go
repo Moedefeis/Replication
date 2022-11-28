@@ -173,7 +173,7 @@ func (n *ServerNode) executePendingOperations() {
 }
 
 func (a *Auction) StartAuction(ctx context.Context, startTime *timestamp.Timestamp) (*proto.Void, error) {
-	endTime := startTime.AsTime().Add(time.Second * 30)
+	endTime := startTime.AsTime().Add(time.Minute)
 	go a.endAuctionAt(&endTime)
 	return &proto.Void{}, nil
 }
