@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -25,6 +26,7 @@ type AuctionClient interface {
 	Bid(ctx context.Context, in *Amount, opts ...grpc.CallOption) (*Response, error)
 	Result(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Amount, error)
 	Crashed(ctx context.Context, in *ServerId, opts ...grpc.CallOption) (*Void, error)
+	StartAuction(ctx context.Context, in *timestamppb.Timestamp, opts ...grpc.CallOption) (*Void, error)
 }
 
 type auctionClient struct {
@@ -62,6 +64,15 @@ func (c *auctionClient) Crashed(ctx context.Context, in *ServerId, opts ...grpc.
 	return out, nil
 }
 
+func (c *auctionClient) StartAuction(ctx context.Context, in *timestamppb.Timestamp, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
+	err := c.cc.Invoke(ctx, "/grpc.auction/startAuction", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuctionServer is the server API for Auction service.
 // All implementations must embed UnimplementedAuctionServer
 // for forward compatibility
@@ -69,6 +80,7 @@ type AuctionServer interface {
 	Bid(context.Context, *Amount) (*Response, error)
 	Result(context.Context, *Void) (*Amount, error)
 	Crashed(context.Context, *ServerId) (*Void, error)
+	StartAuction(context.Context, *timestamppb.Timestamp) (*Void, error)
 	mustEmbedUnimplementedAuctionServer()
 }
 
@@ -84,6 +96,9 @@ func (UnimplementedAuctionServer) Result(context.Context, *Void) (*Amount, error
 }
 func (UnimplementedAuctionServer) Crashed(context.Context, *ServerId) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Crashed not implemented")
+}
+func (UnimplementedAuctionServer) StartAuction(context.Context, *timestamppb.Timestamp) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StartAuction not implemented")
 }
 func (UnimplementedAuctionServer) mustEmbedUnimplementedAuctionServer() {}
 
@@ -152,6 +167,24 @@ func _Auction_Crashed_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Auction_StartAuction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(timestamppb.Timestamp)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServer).StartAuction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/grpc.auction/startAuction",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServer).StartAuction(ctx, req.(*timestamppb.Timestamp))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Auction_ServiceDesc is the grpc.ServiceDesc for Auction service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +203,10 @@ var Auction_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "crashed",
 			Handler:    _Auction_Crashed_Handler,
+		},
+		{
+			MethodName: "startAuction",
+			Handler:    _Auction_StartAuction_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

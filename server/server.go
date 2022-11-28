@@ -8,8 +8,10 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	proto "github.com/Moedefeis/Replication/grpc"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc"
 )
 
@@ -18,6 +20,7 @@ type Auction struct {
 
 	highestBid int32
 	bidLock    sync.Mutex
+	ended      bool
 }
 
 type ServerNode struct {
@@ -41,7 +44,7 @@ var ctx context.Context = context.Background()
 var node *ServerNode
 var ownPort int
 var leaderPort int
-var conns = map[int]proto.ServerNodeClient{5000: nil, 5001: nil, 5002: nil}
+var conns = map[int]proto.ServerNodeClient{5000: nil, 5001: nil}
 
 func main() {
 	ownPort, _ = strconv.Atoi(os.Args[1])
@@ -55,7 +58,7 @@ func main() {
 
 	defer listener.Close()
 	node = &ServerNode{pendingOperations: make([]*Operation, 0)}
-	a := &Auction{highestBid: 0}
+	a := &Auction{highestBid: 0, ended: false}
 
 	server := grpc.NewServer()
 	proto.RegisterAuctionServer(server, a)
@@ -83,14 +86,19 @@ func (a *Auction) Bid(ctx context.Context, bid *proto.Amount) (*proto.Response, 
 	}
 	<-op.execute
 	var status bool
-	if a.highestBid < bid.Amount {
+	var message string
+	if a.ended {
+		status = false
+		message = "auction has ended"
+	} else if a.highestBid < bid.Amount {
 		a.highestBid = bid.Amount
 		status = true
 	} else {
 		status = false
+		message = "higher bid exists"
 	}
 	op.done <- true
-	return &proto.Response{Status: status}, nil
+	return &proto.Response{Status: status, Message: message}, nil
 }
 
 func (a *Auction) Result(ctx context.Context, void *proto.Void) (*proto.Amount, error) {
@@ -162,6 +170,31 @@ func (n *ServerNode) executePendingOperations() {
 		}
 	}
 	n.operations.Unlock()
+}
+
+func (a *Auction) StartAuction(ctx context.Context, startTime *timestamp.Timestamp) (*proto.Void, error) {
+	endTime := startTime.AsTime().Add(time.Second * 30)
+	go a.endAuctionAt(&endTime)
+	return &proto.Void{}, nil
+}
+
+func (a *Auction) endAuctionAt(endTime *time.Time) {
+	duration := endTime.Sub(time.Now())
+	time.Sleep(duration)
+	op := &Operation{
+		id:      &proto.OperationId{Id: "end auction"},
+		execute: make(chan bool),
+		done:    make(chan bool),
+	}
+	node.operations.Lock()
+	node.pendingOperations = append(node.pendingOperations, op)
+	node.operations.Unlock()
+	if isLeader() {
+		go node.broadcastOperationExecution(op)
+	}
+	<-op.execute
+	a.ended = true
+	op.done <- true
 }
 
 func isLeader() bool {

@@ -9,9 +9,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	proto "github.com/Moedefeis/Replication/grpc"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var conns = make(map[int]proto.AuctionClient)
@@ -20,16 +22,19 @@ var ctx = context.Background()
 
 func main() {
 	reader = bufio.NewScanner(os.Stdin)
-	ports := []int{5000, 5001, 5002}
+	ports := []int{5000, 5001}
+	joinTime := timestamppb.New(time.Now())
 	for _, port := range ports {
 		conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure())
 		if err != nil {
 			log.Fatalf("Could not connect: %s", err)
 		}
 		defer conn.Close()
-		conns[port] = proto.NewAuctionClient(conn)
+		client := proto.NewAuctionClient(conn)
+		conns[port] = client
+		go client.StartAuction(ctx, joinTime)
 	}
-	//stressTest()
+	stressTest()
 	handleInput()
 }
 
@@ -37,7 +42,6 @@ func stressTest() {
 	for i := 0; i <= 200; i++ {
 		go bid(i)
 	}
-	<-make(chan bool)
 }
 
 func handleInput() {
@@ -73,7 +77,7 @@ func bid(amount int) {
 	if wrapper.reponse.Status {
 		log.Printf("Bidded %d successfully", amount)
 	} else {
-		log.Printf("Bidded %d unsuccessfully, as higher bid existed", amount)
+		log.Printf("Bidded %d unsuccessfully, %v", amount, wrapper.reponse.Message)
 	}
 }
 
@@ -82,7 +86,7 @@ func bidHandler(port int, conn proto.AuctionClient, bid *proto.Amount, wg *sync.
 
 	response, err := conn.Bid(ctx, bid)
 	if err != nil {
-		log.Printf(err.Error())
+		//log.Printf(err.Error())
 		handleCrashedServer(port)
 	} else {
 		wrapper.reponse = response

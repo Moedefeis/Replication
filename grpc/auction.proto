@@ -2,10 +2,13 @@ syntax = "proto3";
 package grpc;
 option go_package = "https://github.com/Moedefeis/Replication;grpc";
 
+import "google/protobuf/timestamp.proto";
+
 service auction{
-    rpc bid (Amount) returns (Response) { }
+    rpc bid(Amount) returns (Response) { }
     rpc result(Void) returns (Amount) { }
     rpc crashed(ServerId) returns (Void) { }
+    rpc startAuction(google.protobuf.Timestamp) returns (Void) { }
 }
 
 service serverNode{
