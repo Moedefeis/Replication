@@ -24,7 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuctionClient interface {
 	Bid(ctx context.Context, in *Amount, opts ...grpc.CallOption) (*Response, error)
-	Result(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Amount, error)
+	Result(ctx context.Context, in *OperationId, opts ...grpc.CallOption) (*Amount, error)
 	Crashed(ctx context.Context, in *ServerId, opts ...grpc.CallOption) (*Void, error)
 	StartAuction(ctx context.Context, in *timestamppb.Timestamp, opts ...grpc.CallOption) (*Void, error)
 }
@@ -46,7 +46,7 @@ func (c *auctionClient) Bid(ctx context.Context, in *Amount, opts ...grpc.CallOp
 	return out, nil
 }
 
-func (c *auctionClient) Result(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Amount, error) {
+func (c *auctionClient) Result(ctx context.Context, in *OperationId, opts ...grpc.CallOption) (*Amount, error) {
 	out := new(Amount)
 	err := c.cc.Invoke(ctx, "/grpc.auction/result", in, out, opts...)
 	if err != nil {
@@ -78,7 +78,7 @@ func (c *auctionClient) StartAuction(ctx context.Context, in *timestamppb.Timest
 // for forward compatibility
 type AuctionServer interface {
 	Bid(context.Context, *Amount) (*Response, error)
-	Result(context.Context, *Void) (*Amount, error)
+	Result(context.Context, *OperationId) (*Amount, error)
 	Crashed(context.Context, *ServerId) (*Void, error)
 	StartAuction(context.Context, *timestamppb.Timestamp) (*Void, error)
 	mustEmbedUnimplementedAuctionServer()
@@ -91,7 +91,7 @@ type UnimplementedAuctionServer struct {
 func (UnimplementedAuctionServer) Bid(context.Context, *Amount) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Bid not implemented")
 }
-func (UnimplementedAuctionServer) Result(context.Context, *Void) (*Amount, error) {
+func (UnimplementedAuctionServer) Result(context.Context, *OperationId) (*Amount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Result not implemented")
 }
 func (UnimplementedAuctionServer) Crashed(context.Context, *ServerId) (*Void, error) {
@@ -132,7 +132,7 @@ func _Auction_Bid_Handler(srv interface{}, ctx context.Context, dec func(interfa
 }
 
 func _Auction_Result_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Void)
+	in := new(OperationId)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func _Auction_Result_Handler(srv interface{}, ctx context.Context, dec func(inte
 		FullMethod: "/grpc.auction/result",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuctionServer).Result(ctx, req.(*Void))
+		return srv.(AuctionServer).Result(ctx, req.(*OperationId))
 	}
 	return interceptor(ctx, in, info, handler)
 }

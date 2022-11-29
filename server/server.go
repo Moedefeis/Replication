@@ -29,7 +29,7 @@ type ServerNode struct {
 	election         sync.Mutex
 	operations       sync.Mutex
 	operationOrder   *orderedset.OrderedSet
-	operationHashSet map[string]chan *Operation
+	operationHashSet map[string]*Operation
 	executionOrder   chan *proto.OperationId
 	newOperation     chan bool
 }
@@ -41,7 +41,7 @@ type Leader struct {
 }
 
 type Operation struct {
-	id      *proto.OperationId
+	opid    *proto.OperationId
 	execute chan bool
 	done    chan bool
 }
@@ -67,7 +67,7 @@ func main() {
 	defer listener.Close()
 	node = &ServerNode{
 		operationOrder:   orderedset.NewOrderedSet(),
-		operationHashSet: make(map[string]chan *Operation),
+		operationHashSet: make(map[string]*Operation),
 		executionOrder:   make(chan *proto.OperationId, 1000),
 		newOperation:     make(chan bool, 10),
 	}
@@ -84,11 +84,7 @@ func main() {
 }
 
 func (a *Auction) Bid(ctx context.Context, bid *proto.Amount) (*proto.Response, error) {
-	op := &Operation{
-		id:      bid.Opid,
-		execute: make(chan bool),
-		done:    make(chan bool),
-	}
+	op := newOperation(bid.Opid)
 	node.addOperation(op)
 	<-op.execute
 	var status bool
@@ -107,8 +103,13 @@ func (a *Auction) Bid(ctx context.Context, bid *proto.Amount) (*proto.Response, 
 	return &proto.Response{Status: status, Message: message}, nil
 }
 
-func (a *Auction) Result(ctx context.Context, void *proto.Void) (*proto.Amount, error) {
-	return &proto.Amount{Amount: a.highestBid}, nil
+func (a *Auction) Result(ctx context.Context, opid *proto.OperationId) (*proto.Amount, error) {
+	op := newOperation(opid)
+	node.addOperation(op)
+	<-op.execute
+	highestBid := a.highestBid
+	op.done <- true
+	return &proto.Amount{Amount: highestBid}, nil
 }
 
 func (a *Auction) Crashed(ctx context.Context, id *proto.ServerId) (*proto.Void, error) {
@@ -126,7 +127,7 @@ func (a *Auction) Crashed(ctx context.Context, id *proto.ServerId) (*proto.Void,
 }
 
 func (n *ServerNode) AddOperationToExecutionOrder(ctx context.Context, opid *proto.OperationId) (*proto.Void, error) {
-	log.Printf("Notice to execute operation: %v", opid.Id)
+	log.Printf("Received opid: %v", opid.Id)
 	n.executionOrder <- opid
 	return &proto.Void{}, nil
 }
@@ -136,12 +137,12 @@ func (l *Leader) broadcastOperationExecutionOrder() {
 		op := <-l.broadcastOperation
 		l.broadcast.Lock()
 		if _, contains := l.broadcasted[op]; !contains {
-			log.Printf("Broadcasting operation: %v", op.id.Id)
+			log.Printf("Broadcasting opid: %v", op.opid.Id)
 			l.broadcasted[op] = true
 			for _, conn := range conns {
-				conn.AddOperationToExecutionOrder(ctx, op.id)
+				conn.AddOperationToExecutionOrder(ctx, op.opid)
 			}
-			node.AddOperationToExecutionOrder(ctx, op.id)
+			node.AddOperationToExecutionOrder(ctx, op.opid)
 		}
 		l.broadcast.Unlock()
 	}
@@ -157,32 +158,23 @@ func (l *Leader) broadcastExecutionOfAllPendingOperations() {
 func (n *ServerNode) executePendingOperations() {
 	for {
 		opid := <-n.executionOrder
-		log.Printf("A1")
 		op := n.getOperation(opid)
-		log.Printf("A6")
 		if isLeader() {
 			delete(leader.broadcasted, op)
 		}
 		op.execute <- true
+		log.Printf("Executing %v", opid.Id)
 		<-op.done
 	}
 }
 
 func (n *ServerNode) getOperation(opid *proto.OperationId) *Operation {
-
 	for {
-		//log.Printf("A2")
 		n.operations.Lock()
-		log.Printf("A3")
-		opChan, contains := n.operationHashSet[opid.Id]
+		op, contains := n.operationHashSet[opid.Id]
 		if contains {
-			//log.Printf("A4")
-			op := <-opChan
-			log.Printf("A5")
-			if len(opChan) == 0 {
-				delete(n.operationHashSet, opid.Id)
-			}
 			n.operationOrder.Remove(op)
+			delete(n.operationHashSet, opid.Id)
 			n.operations.Unlock()
 			return op
 		}
@@ -195,28 +187,13 @@ func (n *ServerNode) addOperation(op *Operation) {
 	if isLeader() {
 		leader.broadcastOperation <- op
 	}
-	//log.Printf("B1")
 	n.operations.Lock()
-	//log.Printf("B2")
 	n.operationOrder.Add(op)
-	//log.Printf("B3")
-	opChan, contains := n.operationHashSet[op.id.Id]
-	if !contains {
-		n.operationHashSet[op.id.Id] = make(chan *Operation, 2)
-	} else if len(opChan) == cap(opChan) {
-		temp := make(chan *Operation, 2*cap(opChan))
-		for len(opChan) > 0 {
-			temp <- <-opChan
-		}
-		n.operationHashSet[op.id.Id] = temp
-	}
-	n.operationHashSet[op.id.Id] <- op
-	log.Printf("B4")
+	n.operationHashSet[op.opid.Id] = op
 	n.operations.Unlock()
-	if len(n.newOperation) < 1 {
+	if len(n.newOperation) == 0 {
 		n.newOperation <- true
 	}
-	log.Printf("B5")
 }
 
 func (a *Auction) StartAuction(ctx context.Context, startTime *timestamp.Timestamp) (*proto.Void, error) {
@@ -228,11 +205,8 @@ func (a *Auction) StartAuction(ctx context.Context, startTime *timestamp.Timesta
 func (a *Auction) endAuctionAt(endTime *time.Time) {
 	duration := endTime.Sub(time.Now())
 	time.Sleep(duration)
-	op := &Operation{
-		id:      &proto.OperationId{Id: "end auction"},
-		execute: make(chan bool),
-		done:    make(chan bool),
-	}
+	opid := &proto.OperationId{Id: "end auction"}
+	op := newOperation(opid)
 	node.addOperation(op)
 	<-op.execute
 	a.ended = true
@@ -268,16 +242,14 @@ func election() {
 	}
 }
 
-/* func remove(slice []*Operation, op *Operation) []*Operation {
-	make()
-	for i, _op := range slice {
-		if _op == op {
-			break
-		}
+func newOperation(opid *proto.OperationId) *Operation {
+	log.Printf("Received op: %v", opid.Id)
+	return &Operation{
+		opid:    opid,
+		execute: make(chan bool),
+		done:    make(chan bool),
 	}
-	slice[i] = slice[len(slice)-1]
-	return slice[:len(slice)-1]
-} */
+}
 
 func equal(op1 *proto.OperationId, op2 *proto.OperationId) bool {
 	return op1.Id == op2.Id

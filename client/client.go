@@ -16,11 +16,15 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+var messageAmountLock sync.Mutex
+var messageAmount int = 0
+var clientId string
 var conns = make(map[int]proto.AuctionClient)
 var reader *bufio.Scanner
 var ctx = context.Background()
 
 func main() {
+	clientId = os.Args[1]
 	reader = bufio.NewScanner(os.Stdin)
 	ports := []int{5000, 5001}
 	joinTime := timestamppb.New(time.Now())
@@ -65,7 +69,7 @@ func handleInput() {
 func bid(amount int) {
 	bid := &proto.Amount{
 		Amount: int32(amount),
-		Opid:   &proto.OperationId{Id: fmt.Sprintf("Bid %d", amount)},
+		Opid:   &proto.OperationId{Id: fmt.Sprintf("bid %d", amount) + messageIdAffix()},
 	}
 	var wg sync.WaitGroup
 	wrapper := &response{}
@@ -95,11 +99,12 @@ func bidHandler(port int, conn proto.AuctionClient, bid *proto.Amount, wg *sync.
 
 func queryResult() {
 	var result int32 = 0
+	opid := &proto.OperationId{Id: fmt.Sprintf("result") + messageIdAffix()}
 	for port, conn := range conns {
-		highestBid, err := conn.Result(ctx, &proto.Void{})
+		highestBid, err := conn.Result(ctx, opid)
 		if err != nil {
 			handleCrashedServer(port)
-		} else if highestBid.Amount > result {
+		} else {
 			result = highestBid.Amount
 		}
 	}
@@ -115,6 +120,18 @@ func handleCrashedServer(port int) {
 			go conn.Crashed(ctx, serverid)
 		}
 	}
+}
+
+func amount() int {
+	messageAmountLock.Lock()
+	amount := messageAmount
+	messageAmount++
+	messageAmountLock.Unlock()
+	return amount
+}
+
+func messageIdAffix() string {
+	return " " + clientId + " " + strconv.Itoa(amount())
 }
 
 type response struct {
