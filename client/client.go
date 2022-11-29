@@ -38,7 +38,7 @@ func main() {
 		conns[port] = client
 		go client.StartAuction(ctx, joinTime)
 	}
-	stressTest()
+	//stressTest()
 	handleInput()
 }
 

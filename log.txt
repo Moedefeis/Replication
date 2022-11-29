@@ -1,100 +1,107 @@
 --- Server 1 (port 5000) ---
 
-2022/11/28 14:38:35 Electing leader
-2022/11/28 14:38:59 Received operation: Bid 5
-2022/11/28 14:38:59 Broadcasting operation: Bid 5     
-2022/11/28 14:38:59 Notice to execute operation: Bid 5
-2022/11/28 14:39:02 Received operation: Bid 3
-2022/11/28 14:39:02 Broadcasting operation: Bid 3     
-2022/11/28 14:39:02 Notice to execute operation: Bid 3
-2022/11/28 14:39:09 Received operation: Bid 10        
-2022/11/28 14:39:09 Broadcasting operation: Bid 10    
-2022/11/28 14:39:09 Notice to execute operation: Bid 10
-2022/11/28 14:39:14 Received operation: Bid 7
-2022/11/28 14:39:14 Broadcasting operation: Bid 7     
-2022/11/28 14:39:14 Notice to execute operation: Bid 7
-2022/11/28 14:39:20 Received operation: Bid 15        
-2022/11/28 14:39:20 Broadcasting operation: Bid 15    
-2022/11/28 14:39:20 Notice to execute operation: Bid 15
-2022/11/28 14:39:26 Received operation: Bid 13        
-2022/11/28 14:39:26 Broadcasting operation: Bid 13    
-2022/11/28 14:39:26 Notice to execute operation: Bid 13
-2022/11/28 14:39:30 Received operation: Bid 20        
-2022/11/28 14:39:30 Broadcasting operation: Bid 20    
-2022/11/28 14:39:30 Notice to execute operation: Bid 20
+2022/11/29 21:07:35 Electing leader
+2022/11/29 21:08:07 Received op: bid 5 clientA 0
+2022/11/29 21:08:07 Broadcasting opid: bid 5 clientA 0
+2022/11/29 21:08:07 Received opid: bid 5 clientA 0
+2022/11/29 21:08:07 Executing: bid 5 clientA 0
+2022/11/29 21:08:17 Received op: bid 3 clientB 0
+2022/11/29 21:08:17 Broadcasting opid: bid 3 clientB 0
+2022/11/29 21:08:17 Received opid: bid 3 clientB 0
+2022/11/29 21:08:17 Executing: bid 3 clientB 0
+2022/11/29 21:08:23 Received op: result clientA 1
+2022/11/29 21:08:23 Broadcasting opid: result clientA 1
+2022/11/29 21:08:23 Received opid: result clientA 1
+2022/11/29 21:08:23 Executing: result clientA 1
+2022/11/29 21:08:29 Received op: result clientB 1
+2022/11/29 21:08:29 Broadcasting opid: result clientB 1
+2022/11/29 21:08:29 Received opid: result clientB 1
+2022/11/29 21:08:29 Executing: result clientB 1
+2022/11/29 21:08:31 Received op: bid 10 clientB 2
+2022/11/29 21:08:31 Broadcasting opid: bid 10 clientB 2
+2022/11/29 21:08:31 Received opid: bid 10 clientB 2
+2022/11/29 21:08:31 Executing: bid 10 clientB 2
 exit status 0xc000013a
 
 
 
 --- Server 2 (port 5001) ---
 
-2022/11/28 14:38:47 Electing leader
-2022/11/28 14:38:59 Received operation: Bid 5
-2022/11/28 14:38:59 Notice to execute operation: Bid 5
-2022/11/28 14:39:02 Received operation: Bid 3
-2022/11/28 14:39:02 Notice to execute operation: Bid 3
-2022/11/28 14:39:09 Received operation: Bid 10        
-2022/11/28 14:39:09 Notice to execute operation: Bid 10
-2022/11/28 14:39:14 Received operation: Bid 7
-2022/11/28 14:39:14 Notice to execute operation: Bid 7
-2022/11/28 14:39:20 Received operation: Bid 15        
-2022/11/28 14:39:20 Notice to execute operation: Bid 15
-2022/11/28 14:39:26 Received operation: Bid 13        
-2022/11/28 14:39:26 Notice to execute operation: Bid 13
-2022/11/28 14:39:30 Received operation: Bid 20        
-2022/11/28 14:39:30 Notice to execute operation: Bid 20
-2022/11/28 14:39:51 Received operation: Bid 20        
-2022/11/28 14:39:53 Electing leader
-2022/11/28 14:39:53 Broadcasting order of all pending operations
-2022/11/28 14:39:53 Broadcasting operation: Bid 20    
-2022/11/28 14:39:53 Notice to execute operation: Bid 20
-2022/11/28 14:39:53 Broadcasting operation: end auction
-2022/11/28 14:39:53 Notice to execute operation: end auction
-2022/11/28 14:39:55 Broadcasting operation: end auction
-2022/11/28 14:39:55 Notice to execute operation: end auction
-2022/11/28 14:40:08 Received operation: Bid 25        
-2022/11/28 14:40:08 Broadcasting operation: Bid 25    
-2022/11/28 14:40:08 Notice to execute operation: Bid 25
-2022/11/28 14:40:15 Received operation: Bid 27        
-2022/11/28 14:40:15 Broadcasting operation: Bid 27    
-2022/11/28 14:40:15 Notice to execute operation: Bid 27
+2022/11/29 21:07:37 Electing leader
+2022/11/29 21:08:07 Received op: bid 5 clientA 0
+2022/11/29 21:08:07 Received opid: bid 5 clientA 0
+2022/11/29 21:08:07 Executing: bid 5 clientA 0
+2022/11/29 21:08:17 Received op: bid 3 clientB 0
+2022/11/29 21:08:17 Received opid: bid 3 clientB 0
+2022/11/29 21:08:17 Executing: bid 3 clientB 0
+2022/11/29 21:08:23 Received opid: result clientA 1
+2022/11/29 21:08:23 Received op: result clientA 1
+2022/11/29 21:08:23 Executing: result clientA 1
+2022/11/29 21:08:29 Received opid: result clientB 1
+2022/11/29 21:08:29 Received op: result clientB 1
+2022/11/29 21:08:29 Executing: result clientB 1
+2022/11/29 21:08:31 Received op: bid 10 clientB 2
+2022/11/29 21:08:31 Received opid: bid 10 clientB 2
+2022/11/29 21:08:31 Executing: bid 10 clientB 2
+2022/11/29 21:08:40 Received op: bid 20 clientA 2
+2022/11/29 21:08:42 Electing leader
+2022/11/29 21:08:42 Broadcasting order of all pending operations
+2022/11/29 21:08:42 Broadcasting opid: bid 20 clientA 2
+2022/11/29 21:08:42 Received opid: bid 20 clientA 2
+2022/11/29 21:08:42 Executing: bid 20 clientA 2
+2022/11/29 21:08:45 Received op: result clientB 3
+2022/11/29 21:08:45 Broadcasting opid: result clientB 3
+2022/11/29 21:08:45 Received opid: result clientB 3
+2022/11/29 21:08:45 Executing: result clientB 3
+2022/11/29 21:08:56 Received op: bid 5 clientB 4
+2022/11/29 21:08:56 Broadcasting opid: bid 5 clientB 4
+2022/11/29 21:08:56 Received opid: bid 5 clientB 4
+2022/11/29 21:08:56 Executing: bid 5 clientB 4
+2022/11/29 21:09:02 Received op: end auction
+2022/11/29 21:09:02 Broadcasting opid: end auction
+2022/11/29 21:09:02 Received opid: end auction
+2022/11/29 21:09:02 Executing: end auction
+2022/11/29 21:09:03 Received op: end auction
+2022/11/29 21:09:03 Broadcasting opid: end auction
+2022/11/29 21:09:03 Received opid: end auction
+2022/11/29 21:09:03 Executing: end auction
+2022/11/29 21:09:04 Received op: bid 21 clientB 5
+2022/11/29 21:09:04 Broadcasting opid: bid 21 clientB 5
+2022/11/29 21:09:04 Received opid: bid 21 clientB 5
+2022/11/29 21:09:04 Executing: bid 21 clientB 5
+2022/11/29 21:09:07 Received op: result clientA 3
+2022/11/29 21:09:07 Broadcasting opid: result clientA 3
+2022/11/29 21:09:07 Received opid: result clientA 3
+2022/11/29 21:09:07 Executing: result clientA 3
 
 
 
 --- Client 1 ---
 
 bid 5
-2022/11/28 14:38:59 Bidded 5 successfully
-bid 7
-2022/11/28 14:39:14 Bidded 7 unsuccessfully, higher bid exists
+2022/11/29 21:08:07 Bidded 5 successfully
 result
-2022/11/28 14:39:17 Highest bid is: 10
-bid 15
-2022/11/28 14:39:20 Bidded 15 successfully
+2022/11/29 21:08:23 Highest bid is: 5
 bid 20
-2022/11/28 14:39:53 Server at port: 5000 crashed      
-2022/11/28 14:39:53 Bidded 20 unsuccessfully, higher bid exists
-bid 27
-2022/11/28 14:40:15 Bidded 27 unsuccessfully, auction 
-has ended
+2022/11/29 21:08:42 Server at port: 5000 crashed
+2022/11/29 21:08:42 Bidded 20 successfully
+result
+2022/11/29 21:09:07 Highest bid is: 20
 
 
 
 --- Client 2 ---
 
 bid 3
-2022/11/28 14:39:02 Bidded 3 unsuccessfully, higher bid exists
+2022/11/29 21:08:17 Bidded 3 unsuccessfully, higher bid exists
+result
+2022/11/29 21:08:29 Highest bid is: 5
 bid 10
-2022/11/28 14:39:09 Bidded 10 successfully
-bid 13
-2022/11/28 14:39:26 Bidded 13 unsuccessfully, higher 
-bid exists
+2022/11/29 21:08:31 Bidded 10 successfully
 result
-2022/11/28 14:39:28 Highest bid is: 15
-bid 20
-2022/11/28 14:39:30 Bidded 20 successfully
-result
-2022/11/28 14:39:59 Server at port: 5000 crashed     
-2022/11/28 14:39:59 Highest bid is: 20
-bid 25
-2022/11/28 14:40:08 Bidded 25 unsuccessfully, auction has ended
+2022/11/29 21:08:45 Server at port: 5000 crashed
+2022/11/29 21:08:45 Highest bid is: 20
+bid 5
+2022/11/29 21:08:56 Bidded 5 unsuccessfully, higher bid exists
+bid 21
+2022/11/29 21:09:04 Bidded 21 unsuccessfully, auction has ended

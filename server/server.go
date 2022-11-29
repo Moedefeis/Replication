@@ -163,7 +163,7 @@ func (n *ServerNode) executePendingOperations() {
 			delete(leader.broadcasted, op)
 		}
 		op.execute <- true
-		log.Printf("Executing %v", opid.Id)
+		log.Printf("Executing: %v", opid.Id)
 		<-op.done
 	}
 }
