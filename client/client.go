@@ -34,12 +34,12 @@ func main() {
 		conns[port] = client
 		go client.StartAuction(ctx, joinTime)
 	}
-	//stressTest()
+	stressTest()
 	handleInput()
 }
 
 func stressTest() {
-	for i := 0; i <= 200; i++ {
+	for i := 0; i <= 2000; i++ {
 		go bid(i)
 	}
 }
